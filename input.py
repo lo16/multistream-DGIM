@@ -19,7 +19,6 @@ while (not x_range_provided):
 	print ('Enter x range:')
 	x_range = raw_input().strip()
 	x_range_provided = check_input_validity(x_range)
-	print x_range_provided
 
 y_range_provided = False
 while (not y_range_provided):
