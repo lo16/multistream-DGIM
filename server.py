@@ -3,7 +3,8 @@
 import sys
 import random
 from socket import *
-import thread
+import threading
+import time
 
 def help():
   s = '''
@@ -30,59 +31,81 @@ def help():
   raise SystemExit(1)
 
 points = {}
+points_lock = threading.Lock()
 
-def create_point():  
-  num, min, max = (100000, 5000, 10000)
-  if len(sys.argv) == 2 and sys.argv[1] == "-h":
-    help()
-  elif len(sys.argv) == 4:
-    num = int(sys.argv[1])
-    min = int(sys.argv[2])
-    max = int(sys.argv[3])
-    if num <= 0 or min <= 0:
-      help()
-    if min > max:
-      help()
-  else:
-    help()
+class streamThread(threading.Thread):
+  def __init__(self):  
+    threading.Thread.__init__(self)
+    self.num, self.min, self.max = (100000, 5000, 10000)
+    # if len(sys.argv) == 2 and sys.argv[1] == "-h":
+    #   help()
+    # elif len(sys.argv) == 4:
+    #   num = int(sys.argv[1])
+    #   min = int(sys.argv[2])
+    #   max = int(sys.argv[3])
+    #   if num <= 0 or min <= 0:
+    #     help()
+    #   if min > max:
+    #     help()
+    # else:
+    #   help()
 
-  s = socket(AF_INET, SOCK_STREAM)
-  s.bind(('', 0))
-  #get socket data
-  host, port = s.getsockname()
+    self.s = socket(AF_INET, SOCK_STREAM)
+    self.s.bind(('', 0))
+    #get socket data
+    self.host, self.port = self.s.getsockname()
 
-  #initialize to random coordinates
-  x_min = 0
-  y_min = 0
-  x_max = 10000
-  y_max = 10000
-  x_coord = random.uniform(x_min, x_max)
-  y_coord = random.uniform(y_min, y_max)
+    #initialize to random coordinates
+    x_min = 0
+    y_min = 0
+    x_max = 10000
+    y_max = 10000
 
-  #add to dictionary of points
-  points[(x_coord, y_coord)] = (host, port)
+    while True:
+      self.x_coord = random.uniform(x_min, x_max)
+      self.y_coord = random.uniform(y_min, y_max)
+      potential_key = (self.x_coord, self.y_coord)
+      if potential_key not in points.keys(): 
+        #add to dictionary of points
+        points_lock.acquire()
+        try:
+          points[(self.x_coord, self.y_coord)] = (self.host, self.port)
+        finally:
+          points_lock.release()
+        break
 
-  print("connect to port number %s" % port)
-  s.listen(10)
-  while True:
-    client, addr = s.accept()
-    print("Got a connection from %s" % str(addr))
-    random.seed(32767)
-    for i in range(num):
-      j = random.randint(0,1)
-      print j,
-      x = str(j)
-      x = x + "\n"
-      client.send(x.encode('ascii'))
-      for k in range(random.randint(min,max)):
-        j = j + k
-    client.close()
+  def run(self):
+    #wait for all points to be added to the dictionary
+    
+
+    print("connect to port number %s\n" % self.port)
+    e.wait()
+    self.s.listen(10)
+    while True:
+      client, addr = self.s.accept()
+      print("Got a connection from %s" % str(addr))
+      random.seed(32767)
+      for i in range(self.num):
+        j = random.randint(0,1)
+        print j,
+        x = str(j)
+        x = x + "\n"
+        client.send(x.encode('ascii'))
+        for k in range(random.randint(self.min,self.max)):
+          j = j + k
+      client.close()
+
 
 if __name__ == '__main__':
   num_points = 10
+  e = threading.Event()
   for i in xrange(num_points):
     try:
-      thread.start_new_thread(create_point)
-    except:
+      t = streamThread()
+      t.start()
+    except Exception as ex:
       print ("Unable to start thread")
-  print len(points)
+      print ex
+  time.sleep(2)
+  e.set()
+  print 'number of streams:', len(points)
