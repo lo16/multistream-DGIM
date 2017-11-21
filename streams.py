@@ -37,18 +37,6 @@ class streamThread(threading.Thread):
   def __init__(self):  
     threading.Thread.__init__(self)
     self.num, self.min, self.max = (100000, 5000, 10000)
-    # if len(sys.argv) == 2 and sys.argv[1] == "-h":
-    #   help()
-    # elif len(sys.argv) == 4:
-    #   num = int(sys.argv[1])
-    #   min = int(sys.argv[2])
-    #   max = int(sys.argv[3])
-    #   if num <= 0 or min <= 0:
-    #     help()
-    #   if min > max:
-    #     help()
-    # else:
-    #   help()
 
     self.s = socket(AF_INET, SOCK_STREAM)
     self.s.bind(('', 0))
@@ -75,11 +63,12 @@ class streamThread(threading.Thread):
         break
 
   def run(self):
-    #wait for all points to be added to the dictionary
-    
-
     print("connect to port number %s\n" % self.port)
+    
+    #wait for all points to be added to the dictionary
     e.wait()
+    
+    #start listening
     self.s.listen(10)
     while True:
       client, addr = self.s.accept()
