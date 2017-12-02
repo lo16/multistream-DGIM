@@ -6,6 +6,7 @@ import random
 from socket import *
 import threading
 import time
+from flrtreelib.flrtree import LRTree
 
 def help():
   s = '''
@@ -33,7 +34,6 @@ def help():
 
 #buckets will have points as keys and buckets as values
 buckets = {}
-#TODO: ADD LRT STRUCTURE HERE
 buckets_lock = threading.Lock()
 
 class streamThread(threading.Thread):
@@ -63,7 +63,6 @@ class streamThread(threading.Thread):
           #points[(self.x_coord, self.y_coord)] = (self.host, self.port)
           #the dict now stores buckets for DGIM
           buckets[(self.x_coord, self.y_coord)] = []
-          #TODO: ADD POINTS TO LRT
         finally:
           buckets_lock.release()
         break
@@ -100,6 +99,7 @@ class streamThread(threading.Thread):
       #TODO: ADD TIME
       add_to_bucket((self.x_coord, self.y_coord), self.rand_int)
 
+#TODO: IMPLEMENT
 def add_to_bucket((x, y), n):
   pass
 
@@ -137,6 +137,9 @@ if __name__ == '__main__':
   e.set()
   assert(len(buckets) == num_points)
 
+  #initalize LRT here, once all points have been created
+  points_tree = LRTree(buckets.keys())
+
   #client loop
   while True:
     x_range_provided = False
@@ -161,7 +164,9 @@ if __name__ == '__main__':
       timeframe_provided = check_input_validity(timeframe)
 
     print (x_min, x_max), (y_min, y_max)
-    #TODO: SEND X, Y FOR QUERY TO LRT
+    
+    #query LRT for points to estimate
+    points_in_range = points_tree.query((x_min, y_min), (x_max, y_max))
 
     #TODO: CALL FUNCTION TO ESTIMATE MEANS 
     mean = None
