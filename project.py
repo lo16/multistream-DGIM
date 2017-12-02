@@ -31,9 +31,10 @@ def help():
   print(s)
   raise SystemExit(1)
 
-points = {}
+#buckets will have points as keys and buckets as values
+buckets = {}
 #TODO: ADD LRT STRUCTURE HERE
-points_lock = threading.Lock()
+buckets_lock = threading.Lock()
 
 class streamThread(threading.Thread):
   def __init__(self):  
@@ -55,17 +56,21 @@ class streamThread(threading.Thread):
       self.x_coord = random.uniform(x_min, x_max)
       self.y_coord = random.uniform(y_min, y_max)
       potential_key = (self.x_coord, self.y_coord)
-      if potential_key not in points.keys(): 
+      if potential_key not in buckets.keys(): 
         #add to dictionary of points
-        points_lock.acquire()
+        buckets_lock.acquire()
         try:
-          points[(self.x_coord, self.y_coord)] = (self.host, self.port)
+          #points[(self.x_coord, self.y_coord)] = (self.host, self.port)
+          #the dict now stores buckets for DGIM
+          buckets[(self.x_coord, self.y_coord)] = []
           #TODO: ADD POINTS TO LRT
         finally:
-          points_lock.release()
+          buckets_lock.release()
         break
 
   def run(self):
+    '''
+    #THIS SECTION IS FOR THE DISTRIBUTED VERSION IF WE GET TO THAT POINT
     print("connect to port number %s\n" % self.port)
     
     #wait for all points to be added to the dictionary
@@ -86,52 +91,37 @@ class streamThread(threading.Thread):
         for k in range(random.randint(self.min,self.max)):
           j = j + k
       client.close()
+    '''
 
-class userThread(threading.Thread):
-  def __init__(self):
-    self.num_format = re.compile("^[0-9]*\.?[0-9]+$")
+    #use RNG to generate integers and add them to buckets
+    random.seed()
+    for i in range(self.num):
+      self.rand_int = random.randint(0, 10)
+      #TODO: ADD TIME
+      add_to_bucket((self.x_coord, self.y_coord), self.rand_int)
 
-  #our input must be two non-negative numbers separated by a comma, 
-  def check_input_validity(self, range):
-    bounds = range.split(',')
-    #print (bounds)
-    if len(bounds) != 2:
+def add_to_bucket((x, y), n):
+  pass
+
+#our input must be two non-negative numbers separated by a comma, 
+def check_bounds_input_validity(range):
+  bounds = range.split(',')
+  #print (bounds)
+  if len(bounds) != 2:
+    return False
+
+  num_format = re.compile("^[0-9]*\.?[0-9]+$")
+  for num in bounds:
+    isnumber = re.match(num_format, num.strip())
+    if not isnumber:
       return False
+  return True
+  
+#single number version of check_bounds_input_validity
+def check_input_validity(timeframe):
+  num_format = re.compile("^[0-9]*\.?[0-9]+$")
+  return re.match(num_format, timeframe.strip())
 
-    for num in bounds:
-      isnumber = re.match(self.num_format, num.strip())
-      if not isnumber:
-        return False
-    return True
-
-  def print_mean(self, mean):
-    print ("The mean of your query range is estimated to be %f", mean)
-
-  def run(self):
-    while True:
-      x_range_provided = False
-      while (not x_range_provided):
-        print ('Enter x range:')
-        x_range = raw_input().strip()
-        x_range_provided = check_input_validity(x_range)
-
-      y_range_provided = False
-      while (not y_range_provided):
-        print ('Enter y range:')
-        y_range = raw_input().strip()
-        y_range_provided = check_input_validity(y_range)
-
-      [x_min, x_max] = sorted([float(x) for x in x_range])
-      [y_min, y_max] = sorted([float(y) for y in y_range])
-
-      print (x_min, x_max), (y_min, y_max)
-      #TODO: SEND X, Y FOR QUERY
-
-      #TODO: RECEIVE ANSWER FROM DGIM 
-
-      print_mean(mean)
-
-      
 if __name__ == '__main__':
   num_points = 10
   e = threading.Event()
@@ -139,9 +129,41 @@ if __name__ == '__main__':
     try:
       t = streamThread()
       t.start()
+      #TODO: SYNCHRONIZE THREADS TO START AT THE SAME TIME?
     except Exception as ex:
       print ("Unable to start thread")
       print ex
   time.sleep(2)
   e.set()
-  print 'number of streams:', len(points)
+  assert(len(buckets) == num_points)
+
+  #client loop
+  while True:
+    x_range_provided = False
+    while (not x_range_provided):
+      print ('Enter x range:')
+      x_range = raw_input().strip()
+      x_range_provided = check_bounds_input_validity(x_range)
+
+    y_range_provided = False
+    while (not y_range_provided):
+      print ('Enter y range:')
+      y_range = raw_input().strip()
+      y_range_provided = check_bounds_input_validity(y_range)
+
+    [x_min, x_max] = sorted([float(x) for x in x_range])
+    [y_min, y_max] = sorted([float(y) for y in y_range])
+
+    timeframe_provided = False
+    while (not timeframe_provided):
+      print ('Enter timeframe (in seconds):')
+      timeframe = raw_input().strip()
+      timeframe_provided = check_input_validity(timeframe)
+
+    print (x_min, x_max), (y_min, y_max)
+    #TODO: SEND X, Y FOR QUERY TO LRT
+
+    #TODO: CALL FUNCTION TO ESTIMATE MEANS 
+    mean = None
+
+    print ("The mean of your query range is estimated to be %f", mean)
