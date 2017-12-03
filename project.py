@@ -6,7 +6,7 @@ import random
 from socket import *
 import threading
 import time
-from flrtreelib.flrtree import LRTree
+from flrtree import LRTree
 
 def help():
   s = '''
@@ -49,8 +49,8 @@ class streamThread(threading.Thread):
     #initialize to random coordinates
     x_min = 0
     y_min = 0
-    x_max = 10000
-    y_max = 10000
+    x_max = 100
+    y_max = 100
 
     while True:
       self.x_coord = random.uniform(x_min, x_max)
@@ -62,6 +62,7 @@ class streamThread(threading.Thread):
         try:
           #points[(self.x_coord, self.y_coord)] = (self.host, self.port)
           #the dict now stores buckets for DGIM
+          print(self.x_coord, self.y_coord)
           buckets[(self.x_coord, self.y_coord)] = []
         finally:
           buckets_lock.release()
@@ -100,12 +101,12 @@ class streamThread(threading.Thread):
       add_to_bucket((self.x_coord, self.y_coord), self.rand_int)
 
 #TODO: IMPLEMENT
-def add_to_bucket((x, y), n):
+def add_to_bucket(point, n):
   pass
 
 #our input must be two non-negative numbers separated by a comma, 
-def check_bounds_input_validity(range):
-  bounds = range.split(',')
+def get_bounds_from_input(input_range):
+  bounds = input_range.split(',')
   #print (bounds)
   if len(bounds) != 2:
     return False
@@ -114,8 +115,8 @@ def check_bounds_input_validity(range):
   for num in bounds:
     isnumber = re.match(num_format, num.strip())
     if not isnumber:
-      return False
-  return True
+      return None
+  return bounds
   
 #single number version of check_bounds_input_validity
 def check_input_validity(timeframe):
@@ -125,34 +126,34 @@ def check_input_validity(timeframe):
 if __name__ == '__main__':
   num_points = 10
   e = threading.Event()
-  for i in xrange(num_points):
+  for i in range(num_points):
     try:
       t = streamThread()
       t.start()
       #TODO: SYNCHRONIZE THREADS TO START AT THE SAME TIME?
     except Exception as ex:
       print ("Unable to start thread")
-      print ex
+      print(ex)
   time.sleep(2)
   e.set()
   assert(len(buckets) == num_points)
 
   #initalize LRT here, once all points have been created
-  points_tree = LRTree(buckets.keys())
+  points_tree = LRTree(list(buckets.keys()))
 
   #client loop
   while True:
-    x_range_provided = False
-    while (not x_range_provided):
+    x_range = None
+    while (not x_range):
       print ('Enter x range:')
-      x_range = raw_input().strip()
-      x_range_provided = check_bounds_input_validity(x_range)
+      x_range_input = input().strip()
+      x_range = get_bounds_from_input(x_range_input)
 
-    y_range_provided = False
-    while (not y_range_provided):
+    y_range = None
+    while (not y_range):
       print ('Enter y range:')
-      y_range = raw_input().strip()
-      y_range_provided = check_bounds_input_validity(y_range)
+      y_range_input = input().strip()
+      y_range = get_bounds_from_input(y_range_input)
 
     [x_min, x_max] = sorted([float(x) for x in x_range])
     [y_min, y_max] = sorted([float(y) for y in y_range])
@@ -160,13 +161,14 @@ if __name__ == '__main__':
     timeframe_provided = False
     while (not timeframe_provided):
       print ('Enter timeframe (in seconds):')
-      timeframe = raw_input().strip()
+      timeframe = input().strip()
       timeframe_provided = check_input_validity(timeframe)
 
-    print (x_min, x_max), (y_min, y_max)
+    print("x-range: ({}, {})   y-range: ({}, {})  timeframe: {}".format(x_min, x_max, y_min, y_max, timeframe))
     
     #query LRT for points to estimate
     points_in_range = points_tree.query((x_min, y_min), (x_max, y_max))
+    print(points_in_range)
 
     #TODO: CALL FUNCTION TO ESTIMATE MEANS 
     mean = None
