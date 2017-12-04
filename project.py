@@ -9,6 +9,7 @@ import time
 import math
 from flrtree import LRTree
 from DGIM import DGIM
+import matplotlib.pyplot as plt
 
 
 #buckets will have points as keys and buckets as values
@@ -76,7 +77,7 @@ class streamThread(threading.Thread):
     random.seed()
     for i in range(self.num):
       #n = random.randint(int(self.x_coord), int(self.x_coord)+int(self.y_coord)*2)
-      n = random.normalvariate(self.x_coord + self.y_coord, math.sqrt((x_max - x_min + y_max - y_min)/2))
+      n = random.normalvariate(self.x_coord + self.y_coord, math.sqrt((X_MAX - X_MIN + Y_MAX - Y_MIN)/2))
 
       #add timestamp and value to our bucket
       buckets[(self.x_coord, self.y_coord)].add(i, n)
@@ -174,6 +175,7 @@ def main():
 
   #initalize LRT here, once all points have been created
   points_list = list(buckets.keys())
+
   points_tree = LRTree(points_list)
 
   #client loop
