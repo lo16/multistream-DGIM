@@ -9,33 +9,13 @@ import time
 from flrtree import LRTree
 from DGIM import DGIM
 
-def help():
-  s = '''
-  server.py - server program for integer stream
-
-  USAGE:
-    server.py -h
-    server.py <#int> <min> <max>
-
-  OPTIONS:
-    -h   get this help page
-    <#int> number of bits (default is 1000000)
-    <min> minimum delay (default is 5000)
-    <max> maximum delay (default is 10000)
-
-  EXAMPLE:
-    server.py -h
-    server.py 10 1000 2000
-
-  CONTACT:
-    Ming-Hwa Wang, Ph.D. 408/805-4175  m1wan@scu.edu
-  '''
-  print(s)
-  raise SystemExit(1)
 
 #buckets will have points as keys and buckets as values
 buckets = {}
 buckets_lock = threading.Lock()
+
+X_MIN, X_MAX = (0, 100)
+Y_MIN, Y_MAX = (0, 100)
 
 class streamThread(threading.Thread):
   def __init__(self):  
@@ -48,14 +28,10 @@ class streamThread(threading.Thread):
     self.host, self.port = self.s.getsockname()
 
     #initialize to random coordinates
-    x_min = 0
-    y_min = 0
-    x_max = 100
-    y_max = 100
 
     while True:
-      self.x_coord = random.uniform(x_min, x_max)
-      self.y_coord = random.uniform(y_min, y_max)
+      self.x_coord = random.uniform(X_MIN, X_MAX)
+      self.y_coord = random.uniform(Y_MIN, Y_MAX)
       potential_key = (self.x_coord, self.y_coord)
       if potential_key not in buckets.keys(): 
         #add to dictionary of points
@@ -98,7 +74,7 @@ class streamThread(threading.Thread):
     #use RNG to generate integers and add them to buckets
     random.seed()
     for i in range(self.num):
-      n = random.randint(0, 10)
+      n = random.randint(int(self.x_coord), int(self.x_coord)+int(self.y_coord)*2)
 
       #add timestamp and value to our bucket
       buckets[(self.x_coord, self.y_coord)].add(i, n)
@@ -137,8 +113,7 @@ def get_combined_average(points_list, timestamp):
     return total_average
 
 
-if __name__ == '__main__':
-  num_points = 10
+def setup_streams(num_points):
   e = threading.Event()
   for i in range(num_points):
     try:
@@ -152,12 +127,8 @@ if __name__ == '__main__':
   e.set()
   assert(len(buckets) == num_points)
 
-  #initalize LRT here, once all points have been created
-  points_list = list(buckets.keys())
-  points_tree = LRTree(points_list)
 
-  #client loop
-  while True:
+def get_query_bounds():
     x_range = None
     while (not x_range):
       print ('Enter x range:')
@@ -170,22 +141,56 @@ if __name__ == '__main__':
       y_range_input = input().strip()
       y_range = get_bounds_from_input(y_range_input)
 
-    [x_min, x_max] = sorted([float(x) for x in x_range])
-    [y_min, y_max] = sorted([float(y) for y in y_range])
+    x_range = sorted([float(x) for x in x_range])
+    y_range = sorted([float(y) for y in y_range])
 
+    return x_range, y_range
+
+
+def get_timeframe():
     timeframe_provided = False
     while (not timeframe_provided):
       print ('Enter timeframe (in seconds):')
       timeframe = input().strip()
       timeframe_provided = check_input_validity(timeframe)
+    
+    return int(timeframe)
 
-    print("x-range: ({}, {})   y-range: ({}, {})  timeframe: {}".format(x_min, x_max, y_min, y_max, timeframe))
+
+def naive_query():
+    pass
+
+
+def random_query():
+    pass    
+
+
+
+def main():
+  num_points = 100
+  setup_streams(num_points)
+
+  #initalize LRT here, once all points have been created
+  points_list = list(buckets.keys())
+  points_tree = LRTree(points_list)
+
+  #client loop
+  while True:
+    x_range, y_range = get_query_bounds()
+    x_bound_min, x_bound_max = x_range[0], x_range[1]
+    y_bound_min, y_bound_max = y_range[0], y_range[1]
+
+    timeframe = get_timeframe()
+
+    print("x-range: ({}, {})   y-range: ({}, {})  timeframe: {}".format(x_bound_min, x_bound_max, y_bound_min, y_bound_max, timeframe))
     
     #query LRT for points to estimate
-    points_in_range = points_tree.query((x_min, y_min), (x_max, y_max))
-    print(points_in_range)
+    points_in_range = points_tree.query((x_bound_min, y_bound_min), (x_bound_max, y_bound_max))
 
     #TODO: CALL FUNCTION TO ESTIMATE MEANS 
     mean = get_combined_average([points_list[i] for i in points_in_range], int(timeframe))
 
     print ("The mean of your query range is estimated to be {}".format(mean))
+    
+if __name__ == '__main__':
+    main()

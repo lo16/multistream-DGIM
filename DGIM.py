@@ -36,7 +36,6 @@ class DGIM:
     def query(self, query_timestamp):
         current_timestamp = self.dgim_list.timestamp
         target_timestamp = current_timestamp - query_timestamp
-        print("target_timestamp:", target_timestamp)
 
         num_elements = 0
         total_sum = 0
