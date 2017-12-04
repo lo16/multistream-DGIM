@@ -64,7 +64,7 @@ class streamThread(threading.Thread):
           #points[(self.x_coord, self.y_coord)] = (self.host, self.port)
           #the dict now stores buckets for DGIM
           k = 2
-          print(self.x_coord, self.y_coord)
+          #print(self.x_coord, self.y_coord)
           buckets[(self.x_coord, self.y_coord)] = DGIM(k)
         finally:
           buckets_lock.release()
@@ -99,12 +99,13 @@ class streamThread(threading.Thread):
     random.seed()
     for i in range(self.num):
       self.rand_int = random.randint(0, 10)
-      #TODO: ADD TIME
-      add_to_bucket((self.x_coord, self.y_coord), i, self.rand_int)
 
-#TODO: IMPLEMENT
-def add_to_bucket(point, t, n):
-  buckets[point].add(t, n)
+      #add timestamp and value to our bucket
+      buckets[point].add(i, n)
+      #we are setting our stream rate to one int per second
+      time.sleep(1)
+
+  
 
 #our input must be two non-negative numbers separated by a comma, 
 def get_bounds_from_input(input_range):
