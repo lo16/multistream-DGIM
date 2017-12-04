@@ -64,7 +64,7 @@ class streamThread(threading.Thread):
           #points[(self.x_coord, self.y_coord)] = (self.host, self.port)
           #the dict now stores buckets for DGIM
           k = 2
-          #print(self.x_coord, self.y_coord)
+          print(self.x_coord, self.y_coord)
           buckets[(self.x_coord, self.y_coord)] = DGIM(k)
         finally:
           buckets_lock.release()
@@ -98,10 +98,10 @@ class streamThread(threading.Thread):
     #use RNG to generate integers and add them to buckets
     random.seed()
     for i in range(self.num):
-      self.rand_int = random.randint(0, 10)
+      n = random.randint(0, 10)
 
       #add timestamp and value to our bucket
-      buckets[point].add(i, n)
+      buckets[(self.x_coord, self.y_coord)].add(i, n)
       #we are setting our stream rate to one int per second
       time.sleep(1)
 
@@ -126,6 +126,17 @@ def check_input_validity(timeframe):
   num_format = re.compile("^[0-9]*\.?[0-9]+$")
   return re.match(num_format, timeframe.strip())
 
+
+def get_combined_average(points_list, timestamp):
+    total_average = 0
+    for point in points_list:
+        bucket_average = buckets[point].query(timestamp)
+        print("Bucket Average: ", bucket_average)
+        total_average += (bucket_average / len(points_list)) 
+
+    return total_average
+
+
 if __name__ == '__main__':
   num_points = 10
   e = threading.Event()
@@ -142,7 +153,8 @@ if __name__ == '__main__':
   assert(len(buckets) == num_points)
 
   #initalize LRT here, once all points have been created
-  points_tree = LRTree(list(buckets.keys()))
+  points_list = list(buckets.keys())
+  points_tree = LRTree(points_list)
 
   #client loop
   while True:
@@ -174,6 +186,6 @@ if __name__ == '__main__':
     print(points_in_range)
 
     #TODO: CALL FUNCTION TO ESTIMATE MEANS 
-    mean = None
+    mean = get_combined_average([points_list[i] for i in points_in_range], int(timeframe))
 
-    print ("The mean of your query range is estimated to be %f", mean)
+    print ("The mean of your query range is estimated to be {}".format(mean))

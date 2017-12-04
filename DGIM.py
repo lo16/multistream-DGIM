@@ -32,6 +32,27 @@ class DGIM:
                     curr_count = 1
             temp = temp.next
 
+
+    def query(self, query_timestamp):
+        current_timestamp = self.dgim_list.timestamp
+        target_timestamp = current_timestamp - query_timestamp
+        print("target_timestamp:", target_timestamp)
+
+        num_elements = 0
+        total_sum = 0
+
+        prev_timestamp = current_timestamp + 1
+        temp = self.dgim_list
+        while (temp != None and temp.timestamp > target_timestamp):
+            total_sum += temp.sum
+            num_elements += prev_timestamp - temp.timestamp
+            prev_timestamp = temp.timestamp
+            temp = temp.next
+
+        avg = total_sum / num_elements
+
+        return avg
+
     def __repr__(self):
         to_return = ""
         temp = self.dgim_list
@@ -39,6 +60,14 @@ class DGIM:
             to_return += "Bucket(timestamp={}, sum={}, size={})\n".format(temp.timestamp, temp.sum, temp.size)
             temp = temp.next
         return to_return
+
 dgim = DGIM(2)
-for i in range(len(sample_list)):
-    dgim.add(i, sample_list[i])  
+if __name__ == "__main__":
+    for i in range(len(sample_list)):
+        dgim.add(i, sample_list[i])  
+        print(dgim)
+    print(dgim)
+    last_x = 47
+    print("length:", len(sample_list[len(sample_list)-last_x:]))
+    print("Actual Average:", sum(sample_list[len(sample_list)-last_x:])/last_x)
+    print("Estimated Average:", dgim.query(last_x))
