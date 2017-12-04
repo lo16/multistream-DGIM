@@ -49,6 +49,12 @@ class DGIM:
             prev_timestamp = temp.timestamp
             temp = temp.next
 
+        #add % of remaning sum
+        if (temp != None):
+            remaining_diff = prev_timestamp - target_timestamp
+            total_sum += (temp.sum * remaining_diff / (prev_timestamp - temp.timestamp))
+            num_elements += remaining_diff
+
         avg = total_sum / num_elements
 
         return avg
@@ -71,3 +77,4 @@ if __name__ == "__main__":
     print("length:", len(sample_list[len(sample_list)-last_x:]))
     print("Actual Average:", sum(sample_list[len(sample_list)-last_x:])/last_x)
     print("Estimated Average:", dgim.query(last_x))
+    print(len(sample_list))
