@@ -10,6 +10,7 @@ import math
 from flrtree import LRTree
 from DGIM import DGIM
 import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 
 
 #buckets will have points as keys and buckets as values
@@ -18,6 +19,8 @@ buckets_lock = threading.Lock()
 
 X_MIN, X_MAX = (0, 100)
 Y_MIN, Y_MAX = (0, 100)
+
+e = threading.Event()
 
 class streamThread(threading.Thread):
   def __init__(self):  
@@ -119,7 +122,6 @@ def get_combined_average(points_list, timestamp):
 
 
 def setup_streams(num_points):
-  e = threading.Event()
   for i in range(num_points):
     try:
       t = streamThread()
@@ -170,6 +172,25 @@ def random_query():
     pass    
 
 
+def show_stream_locations(point_list):
+    plt.scatter([point[0] for point in point_list],
+                [point[1] for point in point_list])
+    plt.show()
+
+def show_query(point_list, points_in_query, x_range, y_range):
+    width = x_range[1] - x_range[0]
+    height = y_range[1] - y_range[0]
+    fig = plt.figure()
+    ax = fig.add_subplot(111, aspect="equal")
+    ax.scatter([point[0] for point in point_list],
+               [point[1] for point in point_list], color='blue')
+    ax.scatter([point[0] for point in points_in_query],
+               [point[1] for point in points_in_query], color='red')
+    ax.add_patch(Rectangle((x_range[0], y_range[0]), width, height, fill=False))
+
+    plt.show()
+
+
 
 def main():
   num_points = 100
@@ -177,6 +198,8 @@ def main():
 
   #initalize LRT here, once all points have been created
   points_list = list(buckets.keys())
+
+  show_stream_locations(points_list)
 
   points_tree = LRTree(points_list)
 
@@ -188,12 +211,17 @@ def main():
 
     timeframe = get_timeframe()
 
+
     print("x-range: ({}, {})   y-range: ({}, {})  timeframe: {}".format(x_bound_min, x_bound_max, y_bound_min, y_bound_max, timeframe))
     
     #query LRT for points to estimate
-    points_in_range = points_tree.query((x_bound_min, y_bound_min), (x_bound_max, y_bound_max))
+    points_in_range_indicies = points_tree.query((x_bound_min, y_bound_min), (x_bound_max, y_bound_max))
 
-    mean = get_combined_average([points_list[i] for i in points_in_range], int(timeframe))
+    points_in_range = [points_list[i] for i in points_in_range_indicies]
+
+    show_query(points_list, points_in_range, x_range, y_range)
+
+    mean = get_combined_average(points_in_range, int(timeframe))
 
     print ("The mean of your query range is estimated to be {}".format(mean))
     
