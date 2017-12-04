@@ -7,6 +7,7 @@ from socket import *
 import threading
 import time
 from flrtree import LRTree
+from DGIM import DGIM
 
 def help():
   s = '''
@@ -62,8 +63,9 @@ class streamThread(threading.Thread):
         try:
           #points[(self.x_coord, self.y_coord)] = (self.host, self.port)
           #the dict now stores buckets for DGIM
+          k = 2
           print(self.x_coord, self.y_coord)
-          buckets[(self.x_coord, self.y_coord)] = []
+          buckets[(self.x_coord, self.y_coord)] = DGIM(k)
         finally:
           buckets_lock.release()
         break
@@ -98,11 +100,11 @@ class streamThread(threading.Thread):
     for i in range(self.num):
       self.rand_int = random.randint(0, 10)
       #TODO: ADD TIME
-      add_to_bucket((self.x_coord, self.y_coord), self.rand_int)
+      add_to_bucket((self.x_coord, self.y_coord), i, self.rand_int)
 
 #TODO: IMPLEMENT
-def add_to_bucket(point, n):
-  pass
+def add_to_bucket(point, t, n):
+  buckets[point].add(t, n)
 
 #our input must be two non-negative numbers separated by a comma, 
 def get_bounds_from_input(input_range):
