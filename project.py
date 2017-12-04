@@ -74,6 +74,8 @@ class streamThread(threading.Thread):
 
     #use RNG to generate integers and add them to buckets
     random.seed()
+    #wait for all threads to be created before streaming
+    e.wait()
     for i in range(self.num):
       #n = random.randint(int(self.x_coord), int(self.x_coord)+int(self.y_coord)*2)
       n = random.normalvariate(self.x_coord + self.y_coord, math.sqrt((x_max - x_min + y_max - y_min)/2))
@@ -125,10 +127,10 @@ def setup_streams(num_points):
     except Exception as ex:
       print ("Unable to start thread")
       print(ex)
-  time.sleep(2)
-  e.set()
+  time.sleep(2)  
   assert(len(buckets) == num_points)
-
+  e.set()
+  e.clear()
 
 def get_query_bounds():
     x_range = None
@@ -189,7 +191,6 @@ def main():
     #query LRT for points to estimate
     points_in_range = points_tree.query((x_bound_min, y_bound_min), (x_bound_max, y_bound_max))
 
-    #TODO: CALL FUNCTION TO ESTIMATE MEANS 
     mean = get_combined_average([points_list[i] for i in points_in_range], int(timeframe))
 
     print ("The mean of your query range is estimated to be {}".format(mean))
