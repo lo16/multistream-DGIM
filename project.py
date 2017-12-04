@@ -164,8 +164,10 @@ def get_timeframe():
     return int(timeframe)
 
 
-def naive_query():
-    pass
+def naive_query(bound_min, bound_max):
+    return filter(
+        lambda bound_min, bound_max, point_list: [point for point in point_list if (bound_min[0] < point[0] < bound_max[0] and bound_min[1] < point[1] < bound_max[1])])
+
 
 
 def random_query():
