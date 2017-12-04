@@ -6,6 +6,7 @@ import random
 from socket import *
 import threading
 import time
+import math
 from flrtree import LRTree
 from DGIM import DGIM
 
@@ -74,7 +75,8 @@ class streamThread(threading.Thread):
     #use RNG to generate integers and add them to buckets
     random.seed()
     for i in range(self.num):
-      n = random.randint(int(self.x_coord), int(self.x_coord)+int(self.y_coord)*2)
+      #n = random.randint(int(self.x_coord), int(self.x_coord)+int(self.y_coord)*2)
+      n = random.normalvariate(self.x_coord + self.y_coord, math.sqrt((x_max - x_min + y_max - y_min)/2))
 
       #add timestamp and value to our bucket
       buckets[(self.x_coord, self.y_coord)].add(i, n)
