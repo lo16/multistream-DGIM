@@ -58,7 +58,7 @@ class DGIM:
 
         return avg
 
-     def getAverage(self, duration):
+    def getAverage(self, duration):
 
         current = self.dgim_list
         if current != None:

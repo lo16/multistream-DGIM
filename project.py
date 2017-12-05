@@ -11,6 +11,7 @@ from flrtree import LRTree
 from DGIM import DGIM
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
+import timeit
 
 
 #buckets will have points as keys and buckets as values
@@ -45,7 +46,7 @@ class streamThread(threading.Thread):
           #points[(self.x_coord, self.y_coord)] = (self.host, self.port)
           #the dict now stores buckets for DGIM
           k = 2
-          print(self.x_coord, self.y_coord)
+          #print(self.x_coord, self.y_coord)
           buckets[(self.x_coord, self.y_coord)] = DGIM(k)
         finally:
           buckets_lock.release()
@@ -164,22 +165,25 @@ def get_timeframe():
     return int(timeframe)
 
 
-def naive_query(bound_min, bound_max, point_list):
-    x_bound_min, y_bound_min = bound_min
-    x_bound_max, y_bound_max = bound_max
-    return filter(lambda point: (x_bound_min < point[0] < x_bound_max and y_bound_min < point[1] < y_bound_max),point_list)
-
-
-
-
-def random_query():
-    pass    
+def naive_query_wrapper(bound_min, bound_max, point_list):
+    def naive_query():
+        x_bound_min, y_bound_min = bound_min
+        x_bound_max, y_bound_max = bound_max
+        points_in_query = list()
+        for point in point_list:
+            if x_bound_min < point[0]:
+                if x_bound_max > point[0]:
+                    if y_bound_min < point[1]:
+                        if y_bound_max > point[1]:
+                            points_in_query.append(point)
+    return naive_query
 
 
 def show_stream_locations(point_list):
     plt.scatter([point[0] for point in point_list],
                 [point[1] for point in point_list])
     plt.show()
+
 
 def show_query(point_list, points_in_query, x_range, y_range):
     width = x_range[1] - x_range[0]
@@ -195,6 +199,59 @@ def show_query(point_list, points_in_query, x_range, y_range):
     plt.show()
 
 
+def lrt_query_wrapper(lrt, min_bound, max_bound):
+    def lrt_timing_query():
+        return lrt.query((min_bound[0], max_bound[0]), (min_bound[1], max_bound[1]))
+    return lrt_timing_query
+    
+
+
+def test_timing():
+    with open("timing_output.txt", "w") as outfile:
+
+        test_sizes = [10, 100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600, 51200, 100000, 200000, 400000]
+
+
+        for num_points in test_sizes:
+
+            outfile.write("Test size: " + str(num_points) + "\n")
+
+            setup_streams(num_points)
+
+            point_list = list(buckets.keys())
+            print(len(point_list))
+            lrt = LRTree(point_list)
+
+            #test with 1/100000, 1/100, 1/4, all points
+            bounds = [[[0,0],[1,1]],[[0,0],[10,10]],[[0,0],[50,50]],[[0,0],[100,100]]]
+
+            lrt_times = list()
+            naive_times = list()
+
+            for bound in bounds:
+                bound_min = bound[0]
+                bound_max = bound[1]
+                nq = naive_query_wrapper(bound_min,bound_max,point_list)
+                naive_time = timeit.Timer(nq).timeit(number=1000)
+                lrtq = lrt_query_wrapper(lrt, bound_min, bound_max)
+                lrt_time = timeit.Timer(lrtq).timeit(number=1000)
+                print("lrt_time:", lrt_time)
+                print("naive_time:", naive_time)
+                lrt_times.append(lrt_time)
+                naive_times.append(naive_time)
+
+            outfile.write("LRT Times:\n")
+            for t in lrt_times:
+                outfile.write(str(t) + ",")
+
+            outfile.write("\n")
+            outfile.write("Naive Times:\n")
+            for t in naive_times:
+                outfile.write(str(t) + ",")
+            
+            outfile.write("\n\n")
+            buckets.clear()
+    
 
 def main():
   num_points = 100
@@ -230,4 +287,5 @@ def main():
     print ("The mean of your query range is estimated to be {}".format(mean))
     
 if __name__ == '__main__':
+    #test_timing()
     main()
