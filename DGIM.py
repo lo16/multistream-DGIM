@@ -58,6 +58,33 @@ class DGIM:
 
         return avg
 
+     def getAverage(self, duration):
+
+        current = self.dgim_list
+        if current != None:
+            avg = current.sum
+            n = 1 if current != None else 0
+            current_length = n
+            remaining = duration - current_length
+            prev = current
+            current = prev.next
+            current_length = prev.timestamp-current.timestamp
+        
+        while (current != None) and (remaining > 0):
+            if current_length <= remaining: #add the whole thing to the average
+                avg = avg * n / (n + current_length) + current.sum*current_length/(n + current_length)
+                n = n + current_length
+                remaining = remaining - current_length
+                prev = current
+                current = prev.next
+                current_length = prev.timestamp-current.timestamp
+            else:
+                if remaining > 0:
+                    avg = avg * n / (n + remaining) + current.sum * remaining / (n + remaining)
+                    remaining = 0
+        return avg
+        
+
     def __repr__(self):
         to_return = ""
         temp = self.dgim_list
