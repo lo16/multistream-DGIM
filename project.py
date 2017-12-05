@@ -113,12 +113,12 @@ def check_input_validity(timeframe):
   return re.match(num_format, timeframe.strip())
 
 
-def get_combined_average(points_list, timestamp):
+def get_combined_average(point_list, timestamp):
     total_average = 0
-    for point in points_list:
+    for point in point_list:
         bucket_average = buckets[point].getAverage(timestamp)
         print("Bucket Average: ", bucket_average)
-        total_average += (bucket_average / len(points_list)) 
+        total_average += (bucket_average / len(point_list)) 
 
     return total_average
 
@@ -203,11 +203,11 @@ def main():
   setup_streams(num_points)
 
   #initalize LRT here, once all points have been created
-  points_list = list(buckets.keys())
+  point_list = list(buckets.keys())
 
-  show_stream_locations(points_list)
+  show_stream_locations(point_list)
 
-  points_tree = LRTree(points_list)
+  point_tree = LRTree(point_list)
 
   #client loop
   while True:
@@ -221,11 +221,11 @@ def main():
     print("x-range: ({}, {})   y-range: ({}, {})  timeframe: {}".format(x_bound_min, x_bound_max, y_bound_min, y_bound_max, timeframe))
     
     #query LRT for points to estimate
-    points_in_range_indicies = points_tree.query((x_bound_min, y_bound_min), (x_bound_max, y_bound_max))
+    points_in_range_indices = point_tree.query((x_bound_min, y_bound_min), (x_bound_max, y_bound_max))
 
-    points_in_range = [points_list[i] for i in points_in_range_indicies]
+    points_in_range = [point_list[i] for i in points_in_range_indices]
 
-    show_query(points_list, points_in_range, x_range, y_range)
+    show_query(point_list, points_in_range, x_range, y_range)
 
     mean = get_combined_average(points_in_range, int(timeframe))
 
