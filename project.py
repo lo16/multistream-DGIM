@@ -1,12 +1,9 @@
 #!/opt/python-3.4/linux/bin/python3
 
-import sys
 import re
 import random
-from socket import *
 import threading
 import time
-import math
 from flrtree import LRTree
 from DGIM import DGIM
 import matplotlib.pyplot as plt
@@ -28,13 +25,7 @@ class streamThread(threading.Thread):
     threading.Thread.__init__(self)
     self.num, self.min, self.max = (100000, 5000, 10000)
 
-    self.s = socket(AF_INET, SOCK_STREAM)
-    self.s.bind(('', 0))
-    #get socket data
-    self.host, self.port = self.s.getsockname()
-
     #initialize to random coordinates
-
     while True:
       self.x_coord = random.uniform(X_MIN, X_MAX)
       self.y_coord = random.uniform(Y_MIN, Y_MAX)
@@ -43,8 +34,7 @@ class streamThread(threading.Thread):
         #add to dictionary of points
         buckets_lock.acquire()
         try:
-          #points[(self.x_coord, self.y_coord)] = (self.host, self.port)
-          #the dict now stores buckets for DGIM
+          #the dict stores buckets for DGIM
           k = 2
           #print(self.x_coord, self.y_coord)
           buckets[(self.x_coord, self.y_coord)] = DGIM(k)
@@ -53,37 +43,14 @@ class streamThread(threading.Thread):
         break
 
   def run(self):
-    '''
-    #THIS SECTION IS FOR THE DISTRIBUTED VERSION IF WE GET TO THAT POINT
-    print("connect to port number %s\n" % self.port)
-    
-    #wait for all points to be added to the dictionary
-    e.wait()
-    
-    #start listening
-    self.s.listen(10)
-    while True:
-      client, addr = self.s.accept()
-      print("Got a connection from %s" % str(addr))
-      random.seed(32767)
-      for i in range(self.num):
-        j = random.randint(0,1)
-        print j,
-        x = str(j)
-        x = x + "\n"
-        client.send(x.encode('ascii'))
-        for k in range(random.randint(self.min,self.max)):
-          j = j + k
-      client.close()
-    '''
-
     #use RNG to generate integers and add them to buckets
     random.seed()
     #wait for all threads to be created before streaming
     e.wait()
     for i in range(self.num):
-      #n = random.randint(int(self.x_coord), int(self.x_coord)+int(self.y_coord)*2)
-      n = random.normalvariate(self.x_coord + self.y_coord, math.sqrt((X_MAX - X_MIN + Y_MAX - Y_MIN)/2))
+      n = -1
+      while n < 0:
+        n = int(random.normalvariate(self.x_coord + self.y_coord, ((X_MAX - X_MIN + Y_MAX - Y_MIN)/2)**0.5))
 
       #add timestamp and value to our bucket
       buckets[(self.x_coord, self.y_coord)].add(i, n)
@@ -112,12 +79,12 @@ def check_input_validity(timeframe):
   return re.match(num_format, timeframe.strip())
 
 
-def get_combined_average(points_list, timestamp):
+def get_combined_average(point_list, timestamp):
     total_average = 0
-    for point in points_list:
+    for point in point_list:
         bucket_average = buckets[point].getAverage(timestamp)
         print("Bucket Average: ", bucket_average)
-        total_average += (bucket_average / len(points_list)) 
+        total_average += (bucket_average / len(point_list)) 
 
     return total_average
 
@@ -127,7 +94,6 @@ def setup_streams(num_points):
     try:
       t = streamThread()
       t.start()
-      #TODO: SYNCHRONIZE THREADS TO START AT THE SAME TIME?
     except Exception as ex:
       print ("Unable to start thread")
       print(ex)
@@ -165,6 +131,7 @@ def get_timeframe():
     return int(timeframe)
 
 
+<<<<<<< HEAD
 def naive_query_wrapper(bound_min, bound_max, point_list):
     def naive_query():
         x_bound_min, y_bound_min = bound_min
@@ -177,6 +144,16 @@ def naive_query_wrapper(bound_min, bound_max, point_list):
                         if y_bound_max > point[1]:
                             points_in_query.append(point)
     return naive_query
+=======
+def naive_query(bound_min, bound_max, point_list):
+    x_bound_min, y_bound_min = bound_min
+    x_bound_max, y_bound_max = bound_max
+    return filter(lambda point: (x_bound_min < point[0] < x_bound_max and y_bound_min < point[1] < y_bound_max),point_list)
+
+
+def random_query():
+    pass    
+>>>>>>> 773a35e01252b91921fa877efd680a89d97bb0ca
 
 
 def show_stream_locations(point_list):
@@ -258,11 +235,11 @@ def main():
   setup_streams(num_points)
 
   #initalize LRT here, once all points have been created
-  points_list = list(buckets.keys())
+  point_list = list(buckets.keys())
 
-  show_stream_locations(points_list)
+  show_stream_locations(point_list)
 
-  points_tree = LRTree(points_list)
+  point_tree = LRTree(point_list)
 
   #client loop
   while True:
@@ -276,11 +253,11 @@ def main():
     print("x-range: ({}, {})   y-range: ({}, {})  timeframe: {}".format(x_bound_min, x_bound_max, y_bound_min, y_bound_max, timeframe))
     
     #query LRT for points to estimate
-    points_in_range_indicies = points_tree.query((x_bound_min, y_bound_min), (x_bound_max, y_bound_max))
+    points_in_range_indices = point_tree.query((x_bound_min, y_bound_min), (x_bound_max, y_bound_max))
 
-    points_in_range = [points_list[i] for i in points_in_range_indicies]
+    points_in_range = [point_list[i] for i in points_in_range_indices]
 
-    show_query(points_list, points_in_range, x_range, y_range)
+    show_query(point_list, points_in_range, x_range, y_range)
 
     mean = get_combined_average(points_in_range, int(timeframe))
 
