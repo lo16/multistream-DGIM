@@ -24,13 +24,7 @@ class streamThread(threading.Thread):
     threading.Thread.__init__(self)
     self.num, self.min, self.max = (100000, 5000, 10000)
 
-    self.s = socket(AF_INET, SOCK_STREAM)
-    self.s.bind(('', 0))
-    #get socket data
-    self.host, self.port = self.s.getsockname()
-
     #initialize to random coordinates
-
     while True:
       self.x_coord = random.uniform(X_MIN, X_MAX)
       self.y_coord = random.uniform(Y_MIN, Y_MAX)
@@ -39,8 +33,7 @@ class streamThread(threading.Thread):
         #add to dictionary of points
         buckets_lock.acquire()
         try:
-          #points[(self.x_coord, self.y_coord)] = (self.host, self.port)
-          #the dict now stores buckets for DGIM
+          #the dict stores buckets for DGIM
           k = 2
           print(self.x_coord, self.y_coord)
           buckets[(self.x_coord, self.y_coord)] = DGIM(k)
@@ -56,7 +49,7 @@ class streamThread(threading.Thread):
     for i in range(self.num):
       n = -1
       while n < 0:
-        n = int(random.normalvariate(self.x_coord + self.y_coord, (X_MAX - X_MIN + Y_MAX - Y_MIN)/2)**0.5)
+        n = int(random.normalvariate(self.x_coord + self.y_coord, ((X_MAX - X_MIN + Y_MAX - Y_MIN)/2)**0.5))
 
       #add timestamp and value to our bucket
       buckets[(self.x_coord, self.y_coord)].add(i, n)
@@ -100,7 +93,6 @@ def setup_streams(num_points):
     try:
       t = streamThread()
       t.start()
-      #TODO: SYNCHRONIZE THREADS TO START AT THE SAME TIME?
     except Exception as ex:
       print ("Unable to start thread")
       print(ex)
