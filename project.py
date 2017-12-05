@@ -114,7 +114,7 @@ def check_input_validity(timeframe):
 def get_combined_average(points_list, timestamp):
     total_average = 0
     for point in points_list:
-        bucket_average = buckets[point].query(timestamp)
+        bucket_average = buckets[point].getAverage(timestamp)
         print("Bucket Average: ", bucket_average)
         total_average += (bucket_average / len(points_list)) 
 
