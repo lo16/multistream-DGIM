@@ -82,7 +82,9 @@ class streamThread(threading.Thread):
     e.wait()
     for i in range(self.num):
       #n = random.randint(int(self.x_coord), int(self.x_coord)+int(self.y_coord)*2)
-      n = random.normalvariate(self.x_coord + self.y_coord, math.sqrt((X_MAX - X_MIN + Y_MAX - Y_MIN)/2))
+      n = -1
+      while n < 0:
+        n = int(random.normalvariate(self.x_coord + self.y_coord, math.sqrt((X_MAX - X_MIN + Y_MAX - Y_MIN)/2)))
 
       #add timestamp and value to our bucket
       buckets[(self.x_coord, self.y_coord)].add(i, n)
